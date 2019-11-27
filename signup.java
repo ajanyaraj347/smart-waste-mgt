@@ -1,11 +1,15 @@
 package com.example.wastemanagement;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.accounts.AccountManager;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.AdapterView;
 import android.view.View;
 import android.widget.Button;
@@ -13,6 +17,13 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
+
+import com.google.android.gms.auth.GoogleAuthUtil;
+import com.google.android.gms.common.AccountPicker;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
 
 import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
@@ -27,6 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class  signup extends AppCompatActivity {
+    private static final int REQUEST_CODE_EMAIL = 1;
     EditText uname;
     EditText phone;
     EditText password;
@@ -39,10 +51,30 @@ public class  signup extends AppCompatActivity {
     String[] item = {"user", "staff"};
 String s_username,s_name,s_password,s_phone,s_area,s_place,s_email,s_type;
     Spinner spin;
+    String token;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_signup);
+
+        FirebaseInstanceId.getInstance().getInstanceId()
+                .addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
+                    @Override
+                    public void onComplete(@NonNull Task<InstanceIdResult> task) {
+                        if (!task.isSuccessful()) {
+                            Log.w("SSSSMMMKKK", "getInstanceId failed", task.getException());
+                            return;
+                        }
+
+                        // Get new Instance ID token
+                        token = task.getResult().getToken();
+
+                        // Log and toast
+                        // String msg = getString(R.string.msg_token_fmt, token);
+                        Log.d("SSSSMMMKKK", token);
+                        Toast.makeText(signup.this, token, Toast.LENGTH_SHORT).show();
+                    }
+                });
         uname = findViewById(R.id.uname);
         phone = findViewById(R.id.phone);
         password= findViewById(R.id.password);
@@ -50,6 +82,14 @@ String s_username,s_name,s_password,s_phone,s_area,s_place,s_email,s_type;
         place = findViewById(R.id.place);
         name = findViewById(R.id.name);
         email = findViewById(R.id.email);
+
+        try {
+
+            Intent intent = AccountPicker.newChooseAccountIntent(null, null,
+                    new String[]{GoogleAuthUtil.GOOGLE_ACCOUNT_TYPE}, false, null, null, null, null);
+            startActivityForResult(intent, REQUEST_CODE_EMAIL);
+        } catch (ActivityNotFoundException e) {
+        }
 
           spin = (Spinner) findViewById(R.id.spinner);
 
@@ -87,6 +127,12 @@ public void onItemSelected(AdapterView<?> arg0, View arg1, int position, long id
 
         }
 
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_EMAIL && resultCode == RESULT_OK) {
+            String accountName = data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME);
+
+        }
+    }
 
 
     class sign_up extends AsyncTask<String, String, String> {
@@ -113,6 +159,7 @@ public void onItemSelected(AdapterView<?> arg0, View arg1, int position, long id
                 nameValuePairs.add(new BasicNameValuePair("place",s_place));
                 nameValuePairs.add(new BasicNameValuePair("email",s_email));
                 nameValuePairs.add(new BasicNameValuePair("type",s_type));
+                nameValuePairs.add(new BasicNameValuePair("token",token));
 
 
 
